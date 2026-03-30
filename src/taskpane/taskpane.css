@@ -1,0 +1,127 @@
+/* Force light mode for Mac dark mode compatibility */
+:root { color-scheme: light !important; }
+
+@media (prefers-color-scheme: dark) {
+  :root { color-scheme: light !important; }
+  html, body { background-color: #ffffff !important; color: #1a1a1a !important; }
+  input, select, button { background-color: #ffffff !important; color: #1a1a1a !important; border-color: #d0d0d0 !important; }
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; overflow-x: hidden; }
+
+body {
+  font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 13px;
+  color: #1a1a1a;
+  background: #ffffff;
+}
+
+#header {
+  background: #0e7c5a;
+  color: #ffffff;
+  padding: 8px 14px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+#header h1 { font-size: 14px; font-weight: 600; margin: 0; }
+
+#content { padding: 0 10px 16px; overflow-y: auto; }
+
+.section { margin-top: 10px; }
+.section-title {
+  font-size: 11px; font-weight: 600; text-transform: uppercase;
+  color: #555; margin-bottom: 6px; letter-spacing: 0.3px;
+}
+
+/* Source tabs */
+.source-tabs {
+  display: flex; gap: 2px; margin-bottom: 8px;
+  background: #f0f0f0; border-radius: 6px; padding: 2px;
+}
+.source-tab {
+  flex: 1; text-align: center; cursor: pointer;
+  padding: 5px 4px; border-radius: 5px;
+  font-size: 11px; font-weight: 500;
+}
+.source-tab input[type="radio"] { display: none; }
+.source-tab span { pointer-events: none; }
+.source-tab:has(input:checked) { background: #0e7c5a; color: #fff; }
+
+.input-row { display: flex; gap: 6px; }
+.input-row input[type="text"] {
+  flex: 1; padding: 5px 8px; border: 1px solid #ccc;
+  border-radius: 4px; font-size: 12px; outline: none;
+}
+.input-row input[type="text"]:focus { border-color: #0e7c5a; }
+.input-row input[type="file"] { flex: 1; font-size: 11px; padding: 4px 0; }
+
+.btn {
+  padding: 5px 10px; border: none; border-radius: 4px;
+  font-size: 11px; font-weight: 600; cursor: pointer; white-space: nowrap;
+}
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-primary { background: #0e7c5a; color: #fff; }
+.btn-primary:hover:not(:disabled) { background: #0a6348; }
+.btn-row { display: flex; gap: 6px; margin-top: 6px; }
+.btn-row .btn { flex: 1; }
+
+#viewer-container {
+  width: 100%; height: 300px; position: relative;
+  border: 1px solid #ddd; border-radius: 6px;
+  overflow: hidden; background: #fff;
+}
+
+.control-row {
+  display: flex; align-items: center; margin-bottom: 5px; gap: 8px;
+}
+.control-row > label:first-child {
+  width: 70px; font-size: 11px; font-weight: 500; color: #444; flex-shrink: 0;
+}
+.control-row select {
+  flex: 1; padding: 3px 6px; border: 1px solid #ccc;
+  border-radius: 4px; font-size: 11px; background: #fff; outline: none;
+}
+.control-row select:focus { border-color: #0e7c5a; }
+
+.control-row label { font-size: 11px; display: flex; align-items: center; gap: 4px; cursor: pointer; }
+.control-row input[type="checkbox"] { accent-color: #0e7c5a; }
+
+.info-panel {
+  background: #f9f9f9; border: 1px solid #e0e0e0; border-radius: 4px;
+  padding: 6px 8px; font-size: 11px; line-height: 1.6;
+}
+
+.status-text { font-size: 10px; margin-top: 3px; min-height: 14px; }
+.status-text.error { color: #c00; }
+.status-text.success { color: #0e7c5a; }
+
+#loading-overlay {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(255,255,255,0.85);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; z-index: 100;
+}
+.spinner {
+  width: 24px; height: 24px;
+  border: 3px solid #e0e0e0; border-top-color: #0e7c5a;
+  border-radius: 50%; animation: spin 0.7s linear infinite; margin-bottom: 6px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+#loading-text { font-size: 11px; color: #555; }
+
+/* Slider */
+.slider-row { display: flex; align-items: center; gap: 6px; flex: 1; }
+.slider-row input[type="range"] {
+  flex: 1; height: 4px; -webkit-appearance: none;
+  background: #ddd; border-radius: 2px; outline: none;
+}
+.slider-row input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px; height: 14px; border-radius: 50%;
+  background: #0e7c5a; cursor: pointer; border: none;
+}
+.slider-row span {
+  font-size: 10px; color: #666; min-width: 36px; text-align: right;
+}

@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.pixi/
+pixi.lock
+release/
+installer/staging/
+certs/
+*.pyc
+__pycache__/

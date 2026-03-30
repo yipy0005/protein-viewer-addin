@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Protein Viewer — Presenter</title>
+  <script src="https://3Dmol.org/build/3Dmol-min.js"></script>
+</head>
+<body>
+  <div id="layout">
+    <div id="viewer"></div>
+    <div id="panel">
+      <div id="panel-toggle" title="Toggle panel (P)">◀</div>
+      <div id="panel-content">
+
+        <div class="section">
+          <div class="section-title">Load Structure</div>
+          <div class="input-row">
+            <input type="text" id="pdb-input" placeholder="PDB ID e.g. 1CBS" maxlength="4"/>
+            <button id="btn-fetch" class="btn">Add</button>
+          </div>
+          <div class="input-row" style="margin-top:4px;">
+            <input type="file" id="pdb-file" accept=".pdb,.ent,.cif,.sdf,.mol2,.xyz" multiple/>
+          </div>
+          <div id="status" class="status-text"></div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Loaded Entries</div>
+          <div id="entry-list"></div>
+          <div id="align-section" style="display:none;margin-top:6px;">
+            <div class="cr">
+              <label>Ref</label>
+              <select id="align-ref"></select>
+              <button id="btn-align" class="btn">Align All</button>
+            </div>
+            <div id="align-status" class="status-text"></div>
+          </div>
+        </div>
+
+        <div id="entry-settings" style="display:none;">
+          <div class="section">
+            <div class="section-title" id="entry-settings-title">Settings</div>
+            <div class="cr"><label>Style</label><select id="style-select">
+              <option value="cartoon" selected>Cartoon</option><option value="stick">Stick</option>
+              <option value="sphere">Sphere</option><option value="line">Line</option>
+            </select></div>
+            <div class="cr"><label>Color</label><select id="color-scheme">
+              <option value="spectrum" selected>Spectrum</option><option value="chain">Chain</option>
+              <option value="ss">Sec. Struct</option><option value="residue">Residue</option>
+              <option value="element">Element</option>
+            </select></div>
+            <div class="cr"><label>Opacity</label>
+              <input type="range" id="protein-opacity" min="0" max="100" value="100" step="5"/>
+              <span id="protein-opacity-val">100%</span>
+            </div>
+          </div>
+
+          <div class="section" id="ligand-section" style="display:none;">
+            <div class="section-title">Ligand</div>
+            <div class="cr"><label>Pick</label><select id="ligand-select"><option value="">None</option></select></div>
+            <div class="cr"><label>Style</label><select id="ligand-style">
+              <option value="ball-and-stick" selected>Ball &amp; Stick</option>
+              <option value="stick">Stick</option><option value="sphere">Sphere</option>
+            </select></div>
+            <div class="cr"><label><input type="checkbox" id="chk-zoom-ligand"/> Zoom</label></div>
+            <div class="cr"><label><input type="checkbox" id="chk-binding-site"/> Binding site</label></div>
+            <div class="cr" id="binding-dist-row" style="display:none;">
+              <label>Dist</label>
+              <input type="range" id="binding-dist" min="2" max="10" value="5" step="0.5"/>
+              <span id="binding-dist-val">5.0 Å</span>
+            </div>
+            <div class="cr"><label><input type="checkbox" id="chk-binding-labels"/> Labels</label></div>
+            <div class="cr"><label><input type="checkbox" id="chk-hbonds"/> H-bonds</label></div>
+            <div class="cr"><label><input type="checkbox" id="chk-salt-bridges"/> Salt bridges</label></div>
+            <div class="cr"><label><input type="checkbox" id="chk-pi-stacking"/> π–π</label></div>
+            <div class="cr"><label><input type="checkbox" id="chk-pi-cation"/> π–cation</label></div>
+            <div class="cr"><label><input type="checkbox" id="chk-binding-surface"/> Surface</label></div>
+            <div id="binding-surface-options" style="display:none;">
+              <div class="cr"><label>Color</label><select id="binding-surface-color">
+                <option value="esp" selected>ESP</option><option value="white">White</option>
+                <option value="element">Element</option>
+              </select></div>
+              <div class="cr"><label>Opacity</label>
+                <input type="range" id="binding-surface-opacity" min="0" max="100" value="50" step="5"/>
+                <span id="binding-surface-opacity-val">50%</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="section-title">Surface</div>
+            <div class="cr"><label><input type="checkbox" id="surface-toggle"/> Show</label></div>
+            <div id="surface-options" style="display:none;">
+              <div class="cr"><label>Type</label><select id="surface-type">
+                <option value="VDW">VDW</option><option value="SAS" selected>SAS</option><option value="SES">SES</option>
+                <option value="ESP">ESP (Electrostatic)</option>
+              </select></div>
+              <div class="cr"><label>Color</label><select id="surface-color">
+                <option value="white" selected>White</option><option value="protein">Protein</option>
+                <option value="esp">ESP</option><option value="element">Element</option>
+              </select></div>
+              <div class="cr"><label>Opacity</label>
+                <input type="range" id="surface-opacity" min="0" max="100" value="60" step="5"/>
+                <span id="surface-opacity-val">60%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Global</div>
+          <div class="cr"><label><input type="checkbox" id="spin-toggle"/> Spin</label></div>
+          <div class="cr"><label>BG</label><select id="bg-select">
+            <option value="white" selected>White</option><option value="black">Black</option>
+            <option value="#1a1a2e">Dark Blue</option><option value="#f0f0f0">Light Gray</option>
+          </select></div>
+          <div class="info-text" style="margin-top:6px;">
+            <strong>S</strong> spin <strong>P</strong> panel
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</body>
+</html>
