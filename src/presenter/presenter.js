@@ -345,7 +345,14 @@ function renderAll() {
   }
 
   viewer.setBackgroundColor(document.getElementById("bg-select").value);
-  if (!entries.some((e) => e.settings.zoomLigand && e.settings.ligand && e.visible)) viewer.zoomTo();
+  const visibleEntries = entries.filter((e) => e.visible);
+  if (!visibleEntries.some((e) => e.settings.zoomLigand && e.settings.ligand)) {
+    if (visibleEntries.length > 0) {
+      viewer.zoomTo({ model: visibleEntries.map((e) => e.model) });
+    } else {
+      viewer.zoomTo();
+    }
+  }
   viewer.render();
 }
 
