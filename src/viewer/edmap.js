@@ -77,13 +77,15 @@ function addIsoLines(viewer, wasmMap, sigma, radius, center, color) {
   const faceArr = [];
   const colorArr = [];
 
-  // Map color name to {r,g,b}
+  // Standard crystallography colors — lighter and easier on the eyes
   const colorMap = {
-    blue: { r: 0.3, g: 0.5, b: 1.0 },
-    green: { r: 0.0, g: 0.8, b: 0.0 },
-    red: { r: 1.0, g: 0.2, b: 0.2 },
+    "2fofc": { r: 0.4, g: 0.7, b: 1.0 },   // light sky blue
+    "fofc_pos": { r: 0.2, g: 0.9, b: 0.3 }, // bright green
+    "fofc_neg": { r: 1.0, g: 0.3, b: 0.3 }, // bright red
   };
-  const col = colorMap[color] || { r: 0.5, g: 0.5, b: 1.0 };
+  const col = colorMap[color] || { r: 0.4, g: 0.7, b: 1.0 };
+
+  const t = 0.015; // line thickness in Å — thin chicken-wire look
 
   for (let i = 0; i < segs.length; i += 2) {
     const i0 = segs[i] * 3;
@@ -95,7 +97,7 @@ function addIsoLines(viewer, wasmMap, sigma, radius, center, color) {
     const len = Math.sqrt(dx * dx + dy * dy + dz * dz);
     if (len < 0.001) continue;
 
-    // Perpendicular offset for thin quad
+    // Perpendicular offset
     let px = 0, py = 1, pz = 0;
     if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > Math.abs(dz)) {
       px = 1; py = 0; pz = 0;
@@ -105,11 +107,10 @@ function addIsoLines(viewer, wasmMap, sigma, radius, center, color) {
     const cz = dx * py - dy * px;
     const cl = Math.sqrt(cx * cx + cy * cy + cz * cz);
     if (cl < 0.0001) continue;
-    const t = 0.03;
     const ox = (cx / cl) * t, oy = (cy / cl) * t, oz = (cz / cl) * t;
 
     const base = vertexArr.length;
-    const n = new $3Dmol.Vector3(ox, oy, oz);
+    const n = new $3Dmol.Vector3(ox / t, oy / t, oz / t);
     vertexArr.push(
       new $3Dmol.Vector3(x0 + ox, y0 + oy, z0 + oz),
       new $3Dmol.Vector3(x0 - ox, y0 - oy, z0 - oz),
@@ -118,7 +119,9 @@ function addIsoLines(viewer, wasmMap, sigma, radius, center, color) {
     );
     normalArr.push(n, n, n, n);
     colorArr.push(col, col, col, col);
+    // Double-sided: front and back faces
     faceArr.push(base, base + 1, base + 2, base + 1, base + 3, base + 2);
+    faceArr.push(base + 2, base + 1, base, base + 2, base + 3, base + 1);
   }
 
   if (faceArr.length === 0) return null;
@@ -141,17 +144,17 @@ export function renderDensityMap(viewer, mapData, opts) {
   const radius = opts.radius || 8;
   const center = getMapCenter(viewer, opts.center);
 
-  // 2Fo-Fc (blue)
+  // 2Fo-Fc (light blue)
   if (mapData.map2fofc) {
-    const shape = addIsoLines(viewer, mapData.map2fofc, sigma2fofc, radius, center, "blue");
+    const shape = addIsoLines(viewer, mapData.map2fofc, sigma2fofc, radius, center, "2fofc");
     if (shape) currentMapShapes.push(shape);
   }
 
   // Fo-Fc positive (green) and negative (red)
   if (showFofc && mapData.mapFofc) {
-    const posShape = addIsoLines(viewer, mapData.mapFofc, sigmaFofc, radius, center, "green");
+    const posShape = addIsoLines(viewer, mapData.mapFofc, sigmaFofc, radius, center, "fofc_pos");
     if (posShape) currentMapShapes.push(posShape);
-    const negShape = addIsoLines(viewer, mapData.mapFofc, -sigmaFofc, radius, center, "red");
+    const negShape = addIsoLines(viewer, mapData.mapFofc, -sigmaFofc, radius, center, "fofc_neg");
     if (negShape) currentMapShapes.push(negShape);
   }
 
