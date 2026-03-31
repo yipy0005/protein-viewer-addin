@@ -30,6 +30,15 @@ function applySlideViewState() {
   } catch (e) { /**/ }
 }
 
+// Listen for view state relayed from the taskpane via postMessage
+window.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "proteinviewer_viewState" && event.data.viewState) {
+    try {
+      if (viewer) viewer.setView(JSON.parse(event.data.viewState));
+    } catch (e) { /**/ }
+  }
+});
+
 let lastPushHash = "";
 function checkForPush() {
   // Try multi-entry payload first

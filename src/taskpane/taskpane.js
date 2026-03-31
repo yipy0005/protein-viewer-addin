@@ -613,6 +613,9 @@ function bindEvents() {
   let presenterWin = null;
   document.getElementById("btn-open-presenter").addEventListener("click", () => {
     if (presenterWin && !presenterWin.closed) {
+      // Relay the current view state from localStorage to the presenter via postMessage
+      const vs = localStorage.getItem("proteinviewer_viewState");
+      if (vs) presenterWin.postMessage({ type: "proteinviewer_viewState", viewState: vs }, "*");
       presenterWin.focus();
     } else {
       const v = Date.now();
