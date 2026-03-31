@@ -15,6 +15,7 @@ Built with [3Dmol.js](https://3dmol.csb.pitt.edu/) and the [Office.js](https://l
 - [Getting Started](#getting-started)
 - [TaskPane Controls](#taskpane-controls)
   - [Loading a Structure](#loading-a-structure)
+  - [Electron Density Maps](#electron-density-maps)
   - [Protein Style](#protein-style)
   - [Ligand & Binding Site](#ligand--binding-site)
   - [Molecular Interactions](#molecular-interactions)
@@ -29,6 +30,8 @@ Built with [3Dmol.js](https://3dmol.csb.pitt.edu/) and the [Office.js](https://l
   - [Loading Multiple Structures](#loading-multiple-structures)
   - [Per-Entry Settings](#per-entry-settings)
   - [Structural Alignment](#structural-alignment)
+  - [Electron Density Maps (Presenter)](#electron-density-maps-presenter)
+  - [Push to Slide](#push-to-slide)
   - [Keyboard Shortcuts](#keyboard-shortcuts)
 - [Development Setup](#development-setup)
 - [Building the Installer](#building-the-installer)
@@ -209,6 +212,25 @@ If the add-in is not reflecting recent updates (e.g. after a new deployment), yo
 | PDB ID | Enter a 4-character ID (e.g. `1CBS`) and click **Load** |
 | Local file | Switch to the **File** tab, select a `.pdb`, `.ent`, `.cif`, `.sdf`, `.mol2`, or `.xyz` file, and click **Load** |
 
+### Electron Density Maps
+
+After loading a PDB structure, the **Electron Density Map** section appears. You can load MTZ or CCP4 map files to visualize electron density alongside the model.
+
+| Control | Description |
+|---------|-------------|
+| Load Map | Select a `.mtz`, `.ccp4`, or `.map` file |
+| 2Fo-Fc σ | Sigma level for the 2Fo-Fc map (default 1.5σ, displayed as light blue mesh) |
+| Show Fo-Fc | Toggle the difference map (green for +σ, red for -σ) |
+| Fo-Fc σ | Sigma level for the Fo-Fc map (default 3.0σ) |
+| Radius | Extraction radius in Å around the center point (default 8 Å) |
+| Remove Map | Clear the density map from the viewer |
+
+MTZ files are processed entirely in the browser using [gemmi](https://gemmi.readthedocs.io/) compiled to WebAssembly — no server-side computation is needed. The FFT from structure factors to electron density is performed client-side.
+
+If a ligand is selected, the density map is centered on the ligand. Otherwise, it centers on the model's center of mass.
+
+When you click **Push to Slide Viewer**, the electron density isosurface geometry is also pushed to the in-slide viewer.
+
 ### Protein Style
 
 | Control | Options |
@@ -347,6 +369,20 @@ When 2 or more entries are loaded:
 4. All other structures are superimposed onto the reference using the **Kabsch algorithm** (RMSD-minimizing rotation and translation on Cα atoms)
 5. Alignment matches Cα atoms by sequential index — works well for comparing the same protein in different conformations, mutant vs wild-type, apo vs holo, etc.
 
+### Electron Density Maps (Presenter)
+
+The presenter window also supports loading electron density maps. The controls are in the **Electron Density** section of the side panel and work the same as in the task pane.
+
+### Push to Slide
+
+The presenter window can push all visible entries (with their styles and electron density) to the in-slide content add-in:
+
+1. Configure your structures and density maps in the presenter
+2. Click **"Push to Slide"** in the Slide section
+3. All visible entries, their visualization settings, camera orientation, and electron density isosurfaces are synced to the slide
+
+The presenter window also restores its state when reopened — previously pushed entries and their settings are preserved.
+
 ### Keyboard Shortcuts
 
 | Key | Action |
@@ -427,11 +463,12 @@ protein-viewer-addin/
 │   │   ├── commands.html
 │   │   └── commands.js
 │   └── viewer/
-│       └── glbexport.js    # Three.js GLB exporter
+│       ├── glbexport.js    # Three.js GLB exporter
+│       └── edmap.js        # Electron density map support (gemmi WASM)
 ├── server/                 # Python FastAPI dev server (local HTTPS)
 │   ├── server.py
 │   └── server_main.py
-├── assets/                 # Add-in icons (16, 32, 80px)
+├── assets/                 # Add-in icons + gemmi WASM files
 ├── installer/              # DMG build scripts
 │   ├── build-dmg.sh
 │   ├── install.command
@@ -451,7 +488,8 @@ protein-viewer-addin/
 - The **TaskPane add-in** runs in PowerPoint's side panel, providing all controls for loading structures and configuring visualization
 - The **Content add-in** embeds a 3Dmol.js viewer directly inside the slide canvas. It polls `localStorage` every 500ms for updates pushed from the TaskPane
 - The **Presenter window** is a standalone HTML page with its own 3Dmol.js viewer and full controls, designed for live demos during presentations
-- Communication between TaskPane and Content/Presenter uses `localStorage` (same-origin)
+- Communication between TaskPane and Content/Presenter uses `localStorage` (same-origin) and `postMessage` for cross-context view state syncing
+- The **Electron density module** uses gemmi compiled to WebAssembly to parse MTZ files and compute FFTs entirely in the browser. Isosurface extraction is also done in WASM for performance
 - The **GLB exporter** uses Three.js to convert 3Dmol.js molecular geometry into a binary glTF file that PowerPoint can natively display as an interactive 3D model
 
 ### Technology Stack
@@ -459,6 +497,7 @@ protein-viewer-addin/
 | Component | Technology |
 |-----------|-----------|
 | 3D Rendering | [3Dmol.js](https://3dmol.csb.pitt.edu/) (WebGL) |
+| Electron Density | [gemmi](https://gemmi.readthedocs.io/) (WebAssembly) — MTZ/CCP4 parsing and FFT |
 | Office Integration | [Office.js](https://learn.microsoft.com/office/dev/add-ins/) |
 | GLB Export | [Three.js](https://threejs.org/) r128 + GLTFExporter |
 | Frontend Build | Webpack 5 + Babel |
@@ -476,6 +515,8 @@ protein-viewer-addin/
 - **Structural alignment:** Matches Cα atoms by sequential index. For distantly related proteins with different lengths, a sequence alignment step would improve matching.
 - **localStorage sync:** The TaskPane → Content/Presenter sync via localStorage only works when both are served from the same origin. The GitHub Pages version syncs between TaskPane and Content add-in (both on `github.io`), but the Presenter window also needs to be on the same origin.
 - **Large structures:** Very large PDB files (>10 MB) may be slow to render or transfer via localStorage.
+- **Electron density on slide:** The isosurface geometry is serialized to localStorage when pushing to the slide. Very large maps or high-radius extractions may exceed the localStorage size limit (~5-10 MB) and fail silently — the PDB will still push but the density won't appear.
+- **MTZ column labels:** The gemmi WASM module uses default column labels for 2Fo-Fc and Fo-Fc map calculation. Non-standard MTZ files with unusual column names may not produce maps.
 
 ---
 
