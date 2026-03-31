@@ -9,7 +9,9 @@ Built with [3Dmol.js](https://3dmol.csb.pitt.edu/) and the [Office.js](https://l
 ## Table of Contents
 
 - [Installation (macOS)](#installation-macos)
+- [Installation (Windows)](#installation-windows)
 - [Uninstallation](#uninstallation)
+- [Clearing the Add-in Cache](#clearing-the-add-in-cache)
 - [Getting Started](#getting-started)
 - [TaskPane Controls](#taskpane-controls)
   - [Loading a Structure](#loading-a-structure)
@@ -73,6 +75,63 @@ Built with [3Dmol.js](https://3dmol.csb.pitt.edu/) and the [Office.js](https://l
 
 ---
 
+## Installation (Windows)
+
+### Option A: Sideload via Shared Folder
+
+1. Download `manifest-ghpages.xml` and `manifest-content-ghpages.xml` from the repository
+2. Create a folder to store the manifests, for example:
+   ```
+   C:\OfficeAddins\
+   ```
+3. Copy both XML files into this folder, renaming them:
+   - `manifest-ghpages.xml` → `ProteinViewer.xml`
+   - `manifest-content-ghpages.xml` → `ProteinViewerContent.xml`
+4. Share the folder on the network:
+   - Right-click the folder → **Properties** → **Sharing** tab → **Share...**
+   - Add your user and click **Share**
+   - Note the network path shown (e.g. `\\YOURPC\OfficeAddins`)
+5. Register the shared folder as a Trusted Catalog in PowerPoint:
+   - Open PowerPoint
+   - Go to **File → Options → Trust Center → Trust Center Settings...**
+   - Click **Trusted Add-in Catalogs** in the left sidebar
+   - In the **Catalog Url** field, enter the network path (e.g. `\\YOURPC\OfficeAddins`)
+   - Click **Add catalog**
+   - Check the **Show in Menu** checkbox next to the catalog you just added
+   - Click **OK** to close Trust Center Settings, then **OK** again to close Options
+6. Restart PowerPoint
+7. Go to **Insert → My Add-ins → Shared Folder** tab
+8. Select **Protein PDB Viewer** and click **Add**
+9. Repeat for **Protein Viewer Slide** (the content add-in)
+
+### Option B: Upload Directly (No Shared Folder)
+
+1. Download `manifest-ghpages.xml` and `manifest-content-ghpages.xml` from the repository
+2. Open PowerPoint
+3. Go to **Insert → My Add-ins** (or **Get Add-ins** depending on your version)
+4. Click **Upload My Add-in** (at the bottom of the dialog)
+5. Click **Browse**, select `manifest-ghpages.xml`, and click **Upload**
+6. The task pane add-in is now loaded
+7. Repeat the upload for `manifest-content-ghpages.xml` to enable the in-slide interactive viewer
+
+> **Note:** Add-ins uploaded this way need to be re-uploaded each time you restart PowerPoint. Use Option A for a persistent installation.
+
+### Option C: Sideload to the Wef Folder
+
+1. Download `manifest-ghpages.xml` and `manifest-content-ghpages.xml` from the repository
+2. Open File Explorer and navigate to:
+   ```
+   %LOCALAPPDATA%\Microsoft\Office\16.0\Wef\
+   ```
+   If the `Wef` folder does not exist, create it.
+3. Copy both XML files into this folder, renaming them:
+   - `manifest-ghpages.xml` → `ProteinViewer.xml`
+   - `manifest-content-ghpages.xml` → `ProteinViewerContent.xml`
+4. Restart PowerPoint
+5. The **"Protein PDB Viewer"** button should appear in the **Home** tab of the ribbon
+
+---
+
 ## Uninstallation
 
 ### Using the Uninstaller (macOS)
@@ -97,7 +156,47 @@ del %LOCALAPPDATA%\Microsoft\Office\16.0\Wef\ProteinViewer.xml
 del %LOCALAPPDATA%\Microsoft\Office\16.0\Wef\ProteinViewerContent.xml
 ```
 
+If you used the Shared Folder method, also remove the catalog from **File → Options → Trust Center → Trust Center Settings → Trusted Add-in Catalogs**.
+
 Restart PowerPoint after removing the files.
+
+---
+
+## Clearing the Add-in Cache
+
+If the add-in is not reflecting recent updates (e.g. after a new deployment), you may need to clear the Office webview cache. This forces PowerPoint to re-download the add-in files from GitHub Pages.
+
+### macOS
+
+1. Quit PowerPoint completely (**Cmd+Q**)
+2. Open Terminal and run:
+   ```bash
+   rm -rf ~/Library/Containers/com.microsoft.Powerpoint/Data/Library/Caches
+   ```
+3. Reopen PowerPoint
+
+### Windows
+
+1. Close PowerPoint completely
+2. Open File Explorer and delete the contents of these folders (the folders themselves can remain):
+   ```
+   %LOCALAPPDATA%\Microsoft\Office\16.0\Wef\webview2\
+   ```
+   ```
+   %LOCALAPPDATA%\Microsoft\Office\16.0\WebCache\
+   ```
+   If those folders do not exist, try:
+   ```
+   %APPDATA%\Microsoft\Teams\Service Worker\CacheStorage\
+   ```
+3. Alternatively, open a Command Prompt and run:
+   ```cmd
+   rmdir /s /q "%LOCALAPPDATA%\Microsoft\Office\16.0\Wef\webview2"
+   rmdir /s /q "%LOCALAPPDATA%\Microsoft\Office\16.0\WebCache"
+   ```
+4. Reopen PowerPoint
+
+> **Tip:** If clearing the cache does not help, try restarting your computer. Some cache files may be locked while Office processes are running in the background.
 
 ---
 
