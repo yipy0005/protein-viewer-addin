@@ -22,21 +22,67 @@ function init() {
 
 let lastPushHash = "";
 function checkForPush() {
-  const pdbData = localStorage.getItem("proteinviewer_pdbData");
-  if (!pdbData) return;
-  const hash = pdbData.length + "_" + (localStorage.getItem("proteinviewer_styleConfig") || "");
+  // Try multi-entry payload first
+  const multiJson = localStorage.getItem("proteinviewer_multiEntries");
+  const singlePdb = localStorage.getItem("proteinviewer_pdbData");
+  const hash = (multiJson || "") + "_" + (singlePdb ? singlePdb.length : "") + "_" + (localStorage.getItem("proteinviewer_styleConfig") || "");
   if (hash === lastPushHash) return;
   lastPushHash = hash;
 
+  if (multiJson) {
+    try {
+      const payload = JSON.parse(multiJson);
+      if (payload.entries && payload.entries.length) {
+        // Remove old PowerPoint-pushed entries
+        entries = entries.filter((e) => !e._fromPush);
+        for (const pe of payload.entries) {
+          const entry = { id: nextId++, name: pe.name || "PowerPoint", pdbData: pe.pdbData, visible: true, settings: defaultSettings(), ligands: detectLigands(pe.pdbData), _fromPush: true };
+          // Apply saved style config to entry settings
+          const c = pe.styleConfig || {};
+          const s = entry.settings;
+          if (c.style) s.style = c.style;
+          if (c.colorScheme) s.colorScheme = c.colorScheme;
+          if (c.proteinOpacity !== undefined) s.opacity = c.proteinOpacity;
+          if (c.showSurface !== undefined) s.surface = c.showSurface;
+          if (c.surfaceType) s.surfType = c.surfaceType;
+          if (c.surfaceColor) s.surfColor = c.surfaceColor;
+          if (c.surfaceOpacity !== undefined) s.surfOpacity = c.surfaceOpacity;
+          if (c.selectedLigand) s.ligand = c.selectedLigand;
+          if (c.ligandStyle) s.ligandStyle = c.ligandStyle;
+          if (c.zoomToLigand !== undefined) s.zoomLigand = c.zoomToLigand;
+          if (c.showBindingSite !== undefined) s.bindingSite = c.showBindingSite;
+          if (c.bindingDistance !== undefined) s.bindingDist = c.bindingDistance;
+          if (c.showBindingLabels !== undefined) s.bindingLabels = c.showBindingLabels;
+          if (c.showHbonds !== undefined) s.hbonds = c.showHbonds;
+          if (c.showSaltBridges !== undefined) s.saltBridges = c.showSaltBridges;
+          if (c.showPiStacking !== undefined) s.piStacking = c.showPiStacking;
+          if (c.showPiCation !== undefined) s.piCation = c.showPiCation;
+          if (c.showBindingSurface !== undefined) s.bindingSurface = c.showBindingSurface;
+          if (c.bindingSurfaceColor) s.bsSurfColor = c.bindingSurfaceColor;
+          if (c.bindingSurfaceOpacity !== undefined) s.bsSurfOpacity = c.bindingSurfaceOpacity;
+          entries.push(entry);
+        }
+        if (payload.backgroundColor) document.getElementById("bg-select").value = payload.backgroundColor;
+        selectedEntryId = entries.length ? entries[0].id : null;
+        renderAll();
+        renderEntryList();
+        if (selectedEntryId) selectEntry(selectedEntryId);
+        return;
+      }
+    } catch (e) { /**/ }
+  }
+
+  // Fallback: single-entry from taskpane
+  if (!singlePdb) return;
   const existing = entries.find((e) => e.name === "PowerPoint");
   if (existing) {
-    existing.pdbData = pdbData;
-    existing.ligands = detectLigands(pdbData);
+    existing.pdbData = singlePdb;
+    existing.ligands = detectLigands(singlePdb);
     renderAll();
     renderEntryList();
     if (selectedEntryId === existing.id) selectEntry(existing.id);
   } else {
-    addEntry("PowerPoint", pdbData);
+    addEntry("PowerPoint", singlePdb);
   }
 }
 
