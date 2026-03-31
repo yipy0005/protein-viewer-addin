@@ -17,7 +17,12 @@ function init() {
   bindGlobalEvents();
   setupDragDrop();
   checkForPush();
-  setInterval(checkForPush, 500);
+  // Apply the slide's current camera orientation
+  try {
+    const vs = localStorage.getItem("proteinviewer_viewState");
+    if (vs && viewer) viewer.setView(JSON.parse(vs));
+  } catch (e) { /**/ }
+  // Don't poll for changes — presenter is the source of truth while open
 }
 
 let lastPushHash = "";
@@ -65,10 +70,6 @@ function checkForPush() {
         if (payload.backgroundColor) document.getElementById("bg-select").value = payload.backgroundColor;
         selectedEntryId = entries.length ? entries[0].id : null;
         renderAll();
-        // Prefer slide's live view state, fall back to push-time view state
-        const liveVS = localStorage.getItem("proteinviewer_viewState");
-        if (liveVS && viewer) { try { viewer.setView(JSON.parse(liveVS)); } catch (e) { /**/ } }
-        else if (payload.viewState && viewer) viewer.setView(payload.viewState);
         renderEntryList();
         if (selectedEntryId) selectEntry(selectedEntryId);
         return;
@@ -615,13 +616,13 @@ function pushToSlide() {
     styleConfig: entryToStyleConfig(e),
   }));
 
-  // Multi-entry key
-  localStorage.setItem("proteinviewer_multiEntries", JSON.stringify({ backgroundColor: bg, viewState, entries: multiPayload }));
-
-  // Set the live view state so the content add-in and presenter both use it
+  // Write view state as the single source of truth
   if (viewState) localStorage.setItem("proteinviewer_viewState", JSON.stringify(viewState));
 
-  // Also set single-entry keys for backward compat with taskpane's content add-in
+  // Multi-entry key (viewState included for content add-in to use on first render)
+  localStorage.setItem("proteinviewer_multiEntries", JSON.stringify({ backgroundColor: bg, viewState, entries: multiPayload }));
+
+  // Also set single-entry keys for backward compat with taskpane
   const first = visibleEntries[0];
   localStorage.setItem("proteinviewer_pdbData", first.pdbData);
   localStorage.setItem("proteinviewer_styleConfig", JSON.stringify({ ...entryToStyleConfig(first), backgroundColor: bg }));

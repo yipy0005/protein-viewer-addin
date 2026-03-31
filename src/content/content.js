@@ -14,20 +14,20 @@ Office.onReady(() => {
   viewer = $3Dmol.createViewer("viewer", { backgroundColor: "white", antialias: true });
   checkForUpdates();
   setInterval(checkForUpdates, 500);
-  setInterval(saveViewState, 500);
+
+  // Continuously save camera state so the presenter can pick it up
+  let lastSavedView = "";
+  setInterval(() => {
+    if (!viewer) return;
+    try {
+      const vs = JSON.stringify(viewer.getView());
+      if (vs && vs !== lastSavedView) {
+        lastSavedView = vs;
+        localStorage.setItem("proteinviewer_viewState", vs);
+      }
+    } catch (e) { /**/ }
+  }, 500);
 });
-
-let lastRenderTime = 0;
-
-function saveViewState() {
-  if (!viewer) return;
-  // Don't overwrite view state within 2s of a render (let the pushed orientation stick)
-  if (Date.now() - lastRenderTime < 2000) return;
-  try {
-    const vs = viewer.getView();
-    if (vs) localStorage.setItem("proteinviewer_viewState", JSON.stringify(vs));
-  } catch (e) { /**/ }
-}
 
 function checkForUpdates() {
   // Prefer multi-entry payload from presenter
@@ -130,7 +130,6 @@ function renderMultiStructure(payload) {
     viewer.zoomTo();
   }
   viewer.render();
-  lastRenderTime = Date.now();
 }
 
 function renderBindingSiteForModel(model, ligSel, c) {
@@ -252,7 +251,6 @@ function renderStructure(pdbData, styleConfigJson) {
 
   viewer.setBackgroundColor(bg);
   viewer.render();
-  lastRenderTime = Date.now();
 }
 
 function buildLigandStyle(s) {
