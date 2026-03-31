@@ -668,7 +668,7 @@ function bindGlobalEvents() {
     "binding-surface-opacity","surface-toggle","surface-type","surface-color","surface-opacity"];
   ids.forEach((id) => {
     const el = document.getElementById(id);
-    if (el) el.addEventListener("change", () => { saveUIToSettings(); renderAll(); updateConditionalUI(); });
+    if (el) el.addEventListener("change", () => { saveUIToSettings(); renderAll(); updateConditionalUI(); if (currentMapData) reRenderMapPresenter(); });
   });
 
   // Slider labels
@@ -841,6 +841,19 @@ function handleLoadMapPresenter() {
   reader.readAsArrayBuffer(file);
 }
 
+function getSelectedLigandCenter() {
+  const entry = getSelectedEntry();
+  if (!entry || !entry.settings.ligand || !entry.model) return null;
+  const s = entry.settings.ligand;
+  const resi = parseInt(s.resi, 10);
+  const atoms = entry.model.selectedAtoms({ resn: s.resn, chain: s.chain, resi: resi });
+  if (!atoms || !atoms.length) return null;
+  let cx = 0, cy = 0, cz = 0;
+  for (const a of atoms) { cx += a.x; cy += a.y; cz += a.z; }
+  const n = atoms.length;
+  return { x: cx / n, y: cy / n, z: cz / n };
+}
+
 function reRenderMapPresenter() {
   if (!viewer || !currentMapData) return;
   const view = viewer.getView();
@@ -849,7 +862,8 @@ function reRenderMapPresenter() {
   const sigmaFofc = parseFloat(document.getElementById("map-fofc-sigma").value);
   const showFofc = document.getElementById("chk-fofc-map").checked;
   const radius = parseFloat(document.getElementById("map-radius").value);
-  renderDensityMap(viewer, currentMapData, { sigma2fofc, sigmaFofc, showFofc, radius });
+  const center = getSelectedLigandCenter();
+  renderDensityMap(viewer, currentMapData, { sigma2fofc, sigmaFofc, showFofc, radius, center });
   if (view) viewer.setView(view);
 }
 

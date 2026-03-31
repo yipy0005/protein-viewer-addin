@@ -42,9 +42,11 @@ export function parseCcp4(gemmi, arrayBuffer) {
 }
 
 /**
- * Get the center of mass of the current model in the viewer.
+ * Get the center point for map extraction.
+ * If a selection is provided, use that; otherwise use model center of mass.
  */
-function getModelCenter(viewer) {
+function getMapCenter(viewer, centerAtom) {
+  if (centerAtom) return centerAtom;
   try {
     const atoms = viewer.getModel().selectedAtoms({});
     if (!atoms || !atoms.length) return { x: 0, y: 0, z: 0 };
@@ -137,7 +139,7 @@ export function renderDensityMap(viewer, mapData, opts) {
   const sigmaFofc = opts.sigmaFofc || 3.0;
   const showFofc = opts.showFofc || false;
   const radius = opts.radius || 8;
-  const center = getModelCenter(viewer);
+  const center = getMapCenter(viewer, opts.center);
 
   // 2Fo-Fc (blue)
   if (mapData.map2fofc) {

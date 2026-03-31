@@ -745,6 +745,19 @@ function handleLoadMap() {
   reader.readAsArrayBuffer(file);
 }
 
+function getSelectedLigandCenterTaskpane() {
+  const ligVal = document.getElementById("ligand-select").value;
+  if (!ligVal || !viewer || !currentModel) return null;
+  const lig = JSON.parse(ligVal);
+  const resi = parseInt(lig.resi, 10);
+  const atoms = currentModel.selectedAtoms({ resn: lig.resn, chain: lig.chain, resi: resi });
+  if (!atoms || !atoms.length) return null;
+  let cx = 0, cy = 0, cz = 0;
+  for (const a of atoms) { cx += a.x; cy += a.y; cz += a.z; }
+  const n = atoms.length;
+  return { x: cx / n, y: cy / n, z: cz / n };
+}
+
 function reRenderMap() {
   if (!viewer || !currentMapData) return;
   const view = viewer.getView();
@@ -753,7 +766,8 @@ function reRenderMap() {
   const sigmaFofc = parseFloat(document.getElementById("map-fofc-sigma").value);
   const showFofc = document.getElementById("chk-fofc-map").checked;
   const radius = parseFloat(document.getElementById("map-radius").value);
-  renderDensityMap(viewer, currentMapData, { sigma2fofc, sigmaFofc, showFofc, radius });
+  const center = getSelectedLigandCenterTaskpane();
+  renderDensityMap(viewer, currentMapData, { sigma2fofc, sigmaFofc, showFofc, radius, center });
   if (view) viewer.setView(view);
 }
 
