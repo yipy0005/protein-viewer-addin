@@ -17,8 +17,12 @@ Office.onReady(() => {
   setInterval(saveViewState, 500);
 });
 
+let lastRenderTime = 0;
+
 function saveViewState() {
   if (!viewer) return;
+  // Don't overwrite view state within 2s of a render (let the pushed orientation stick)
+  if (Date.now() - lastRenderTime < 2000) return;
   try {
     const vs = viewer.getView();
     if (vs) localStorage.setItem("proteinviewer_viewState", JSON.stringify(vs));
@@ -126,6 +130,7 @@ function renderMultiStructure(payload) {
     viewer.zoomTo();
   }
   viewer.render();
+  lastRenderTime = Date.now();
 }
 
 function renderBindingSiteForModel(model, ligSel, c) {
@@ -247,6 +252,7 @@ function renderStructure(pdbData, styleConfigJson) {
 
   viewer.setBackgroundColor(bg);
   viewer.render();
+  lastRenderTime = Date.now();
 }
 
 function buildLigandStyle(s) {

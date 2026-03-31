@@ -618,6 +618,9 @@ function pushToSlide() {
   // Multi-entry key
   localStorage.setItem("proteinviewer_multiEntries", JSON.stringify({ backgroundColor: bg, viewState, entries: multiPayload }));
 
+  // Set the live view state so the content add-in and presenter both use it
+  if (viewState) localStorage.setItem("proteinviewer_viewState", JSON.stringify(viewState));
+
   // Also set single-entry keys for backward compat with taskpane's content add-in
   const first = visibleEntries[0];
   localStorage.setItem("proteinviewer_pdbData", first.pdbData);
