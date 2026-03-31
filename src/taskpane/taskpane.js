@@ -565,6 +565,7 @@ function getStyleConfig() {
 
 function pushToSlideViewer() {
   if (!currentPdbData) return;
+  localStorage.removeItem("proteinviewer_multiEntries");
   localStorage.setItem("proteinviewer_pdbData", currentPdbData);
   localStorage.setItem("proteinviewer_styleConfig", JSON.stringify(getStyleConfig()));
   setStatus("Pushed to slide viewer.", "success");
