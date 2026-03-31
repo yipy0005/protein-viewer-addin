@@ -833,12 +833,14 @@ function handleLoadMapPresenter() {
 
 function reRenderMapPresenter() {
   if (!viewer || !currentMapData) return;
+  const view = viewer.getView();
   removeDensityMap(viewer);
   const sigma2fofc = parseFloat(document.getElementById("map-2fofc-sigma").value);
   const sigmaFofc = parseFloat(document.getElementById("map-fofc-sigma").value);
   const showFofc = document.getElementById("chk-fofc-map").checked;
   const radius = parseFloat(document.getElementById("map-radius").value);
   renderDensityMap(viewer, currentMapData, { sigma2fofc, sigmaFofc, showFofc, radius });
+  if (view) viewer.setView(view);
 }
 
 function handleRemoveMapPresenter() {
