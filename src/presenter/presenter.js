@@ -830,7 +830,8 @@ function reRenderMapPresenter() {
   const sigma2fofc = parseFloat(document.getElementById("map-2fofc-sigma").value);
   const sigmaFofc = parseFloat(document.getElementById("map-fofc-sigma").value);
   const showFofc = document.getElementById("chk-fofc-map").checked;
-  renderDensityMap(viewer, currentMapData, { sigma2fofc, sigmaFofc, showFofc });
+  const radius = parseFloat(document.getElementById("map-radius").value);
+  renderDensityMap(viewer, currentMapData, { sigma2fofc, sigmaFofc, showFofc, radius });
 }
 
 function handleRemoveMapPresenter() {
