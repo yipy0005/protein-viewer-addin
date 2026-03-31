@@ -59,7 +59,7 @@ function getModelCenter(viewer) {
 
 /**
  * Extract isosurface from a gemmi wasm map and render as a single batched
- * line shape in 3Dmol.js for performance.
+ * custom shape in 3Dmol.js for performance.
  */
 function addIsoLines(viewer, wasmMap, sigma, radius, center, color) {
   const isolevel = wasmMap.mean + sigma * wasmMap.rms;
@@ -70,58 +70,62 @@ function addIsoLines(viewer, wasmMap, sigma, radius, center, color) {
   const segs = wasmMap.isosurface_segments();
   if (!verts || !segs || verts.length === 0 || segs.length === 0) return null;
 
-  // Build a single custom shape with all line segments
   const vertexArr = [];
   const normalArr = [];
   const faceArr = [];
   const colorArr = [];
 
-  // Parse the color to get r,g,b
-  const c = $3Dmol.CC.color(color);
-  const cr = c.r, cg = c.g, cb = c.b;
+  // Map color name to {r,g,b}
+  const colorMap = {
+    blue: { r: 0.3, g: 0.5, b: 1.0 },
+    green: { r: 0.0, g: 0.8, b: 0.0 },
+    red: { r: 1.0, g: 0.2, b: 0.2 },
+  };
+  const col = colorMap[color] || { r: 0.5, g: 0.5, b: 1.0 };
 
-  // For each line segment, create a thin triangle pair (degenerate quad)
-  // This renders as lines but in a single draw call
   for (let i = 0; i < segs.length; i += 2) {
     const i0 = segs[i] * 3;
     const i1 = segs[i + 1] * 3;
     const x0 = verts[i0], y0 = verts[i0 + 1], z0 = verts[i0 + 2];
     const x1 = verts[i1], y1 = verts[i1 + 1], z1 = verts[i1 + 2];
 
-    // Create a very thin quad (two triangles) to represent the line
     const dx = x1 - x0, dy = y1 - y0, dz = z1 - z0;
     const len = Math.sqrt(dx * dx + dy * dy + dz * dz);
     if (len < 0.001) continue;
 
-    // Perpendicular offset (tiny, ~0.02 Å)
-    let px, py, pz;
-    if (Math.abs(dy) > Math.abs(dx)) {
+    // Perpendicular offset for thin quad
+    let px = 0, py = 1, pz = 0;
+    if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > Math.abs(dz)) {
       px = 1; py = 0; pz = 0;
-    } else {
-      px = 0; py = 1; pz = 0;
     }
-    // Cross product for perpendicular
     const cx = dy * pz - dz * py;
     const cy = dz * px - dx * pz;
     const cz = dx * py - dy * px;
     const cl = Math.sqrt(cx * cx + cy * cy + cz * cz);
-    const t = 0.02; // thickness
+    if (cl < 0.0001) continue;
+    const t = 0.03;
     const ox = (cx / cl) * t, oy = (cy / cl) * t, oz = (cz / cl) * t;
 
-    const base = vertexArr.length / 3;
-    vertexArr.push(x0 + ox, y0 + oy, z0 + oz);
-    vertexArr.push(x0 - ox, y0 - oy, z0 - oz);
-    vertexArr.push(x1 + ox, y1 + oy, z1 + oz);
-    vertexArr.push(x1 - ox, y1 - oy, z1 - oz);
-    normalArr.push(ox, oy, oz, -ox, -oy, -oz, ox, oy, oz, -ox, -oy, -oz);
-    colorArr.push(cr, cg, cb, cr, cg, cb, cr, cg, cb, cr, cg, cb);
+    const base = vertexArr.length;
+    const n = new $3Dmol.Vector3(ox, oy, oz);
+    vertexArr.push(
+      new $3Dmol.Vector3(x0 + ox, y0 + oy, z0 + oz),
+      new $3Dmol.Vector3(x0 - ox, y0 - oy, z0 - oz),
+      new $3Dmol.Vector3(x1 + ox, y1 + oy, z1 + oz),
+      new $3Dmol.Vector3(x1 - ox, y1 - oy, z1 - oz)
+    );
+    normalArr.push(n, n, n, n);
+    colorArr.push(col, col, col, col);
     faceArr.push(base, base + 1, base + 2, base + 1, base + 3, base + 2);
   }
 
   if (faceArr.length === 0) return null;
 
   const shape = viewer.addCustom({
-    vertexArr, normalArr, faceArr, color: colorArr,
+    vertexArr: vertexArr,
+    normalArr: normalArr,
+    faceArr: faceArr,
+    color: colorArr,
   });
   return shape;
 }
