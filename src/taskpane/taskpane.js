@@ -610,9 +610,14 @@ function bindEvents() {
 
   document.getElementById("btn-insert").addEventListener("click", handleInsertSnapshot);
   document.getElementById("btn-push-slide").addEventListener("click", pushToSlideViewer);
+  let presenterWin = null;
   document.getElementById("btn-open-presenter").addEventListener("click", () => {
-    const v = Date.now();
-    window.open(`https://yipy0005.github.io/protein-viewer-addin/presenter.html?v=${v}`, "ProteinPresenter", "width=1200,height=800");
+    if (presenterWin && !presenterWin.closed) {
+      presenterWin.focus();
+    } else {
+      const v = Date.now();
+      presenterWin = window.open(`https://yipy0005.github.io/protein-viewer-addin/presenter.html?v=${v}`, "ProteinPresenter", "width=1200,height=800");
+    }
   });
   document.getElementById("btn-download-glb").addEventListener("click", handleDownloadGLB);
 }
