@@ -130,26 +130,21 @@ function buildCcp4Buffer(wasmMap) {
   return buf;
 }
 
+let currentIsoShapes = [];
+
 /**
  * Render electron density isosurfaces in a 3Dmol.js viewer.
- * @param {object} viewer - 3Dmol.js viewer
- * @param {object} mapData - { map2fofc, mapFofc } from parseMtz or { ccp4Map } from parseCcp4
- * @param {object} opts - { sigma2fofc, sigmaFofc, showFofc, radius, center }
- * @returns {object} - { isoIds } for later removal
  */
 export function renderDensityMap(viewer, mapData, opts) {
   const sigma2fofc = opts.sigma2fofc || 1.5;
   const sigmaFofc = opts.sigmaFofc || 3.0;
   const showFofc = opts.showFofc || false;
 
-  const result = { isoIds: [] };
-
   // 2Fo-Fc map (blue mesh)
   const map = mapData.map2fofc || mapData.ccp4Map;
   if (map) {
     const ccp4Buf = buildCcp4Buffer(map);
     const volData = new $3Dmol.VolumeData(ccp4Buf, "ccp4");
-    const rms = map.rms || volData.data.reduce((s, v) => s + v * v, 0) / volData.data.length;
     const isoVal = map.mean + sigma2fofc * map.rms;
     const iso = viewer.addIsosurface(volData, {
       isoval: isoVal,
@@ -157,7 +152,7 @@ export function renderDensityMap(viewer, mapData, opts) {
       alpha: 0.5,
       wireframe: true,
     });
-    result.isoIds.push(iso);
+    currentIsoShapes.push(iso);
   }
 
   // Fo-Fc map (green +σ, red -σ)
@@ -177,17 +172,19 @@ export function renderDensityMap(viewer, mapData, opts) {
       alpha: 0.5,
       wireframe: true,
     });
-    result.isoIds.push(isoPos, isoNeg);
+    currentIsoShapes.push(isoPos, isoNeg);
   }
 
   viewer.render();
-  return result;
 }
 
 /**
  * Remove all density isosurfaces from the viewer.
  */
 export function removeDensityMap(viewer) {
-  viewer.removeAllIsosurfaces();
+  for (const shape of currentIsoShapes) {
+    viewer.removeShape(shape);
+  }
+  currentIsoShapes = [];
   viewer.render();
 }
