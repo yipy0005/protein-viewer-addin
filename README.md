@@ -520,6 +520,12 @@ protein-viewer-addin/
 
 ---
 
+## Author
+
+Created and maintained by Yew Mun Yip.
+
+---
+
 ## License
 
 MIT
