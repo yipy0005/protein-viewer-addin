@@ -337,7 +337,7 @@ function renderAll() {
         renderBindingSite(model, ligSel, s);
       }
 
-      if (s.zoomLigand) { viewer.zoomTo(ligSel); viewer.center(ligSel); }
+      if (s.zoomLigand) { /* handled at end of renderAll */ }
     } else {
       viewer.addStyle({ model: model, hetflag: true, not: { resn: [...WATER,...IONS] } },
         { stick: { colorscheme:"default", radius:0.15 }, sphere: { colorscheme:"default", radius:0.3 } });
@@ -346,12 +346,17 @@ function renderAll() {
 
   viewer.setBackgroundColor(document.getElementById("bg-select").value);
   const visibleEntries = entries.filter((e) => e.visible);
-  if (!visibleEntries.some((e) => e.settings.zoomLigand && e.settings.ligand)) {
-    if (visibleEntries.length > 0) {
-      viewer.zoomTo({ model: visibleEntries.map((e) => e.model) });
-    } else {
-      viewer.zoomTo();
-    }
+  const ligandZoomEntry = visibleEntries.find((e) => e.settings.zoomLigand && e.settings.ligand);
+  if (ligandZoomEntry) {
+    const s = ligandZoomEntry.settings;
+    const resi = parseInt(s.ligand.resi, 10);
+    const ligSel = { model: ligandZoomEntry.model, resn: s.ligand.resn, chain: s.ligand.chain, resi };
+    viewer.center(ligSel);
+    viewer.zoomTo(ligSel);
+  } else if (visibleEntries.length > 0) {
+    viewer.zoomTo({ model: visibleEntries.map((e) => e.model) });
+  } else {
+    viewer.zoomTo();
   }
   viewer.render();
 }
