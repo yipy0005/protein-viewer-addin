@@ -1,13 +1,15 @@
-/* global Office, $3Dmol */
+/* global Office, $3Dmol, Gemmi */
 
 import "./taskpane.css";
 import { exportToGLB, downloadGLB } from "../viewer/glbexport.js";
+import { ensureGemmi, parseMtz, parseCcp4, renderDensityMap, removeDensityMap } from "../viewer/edmap.js";
 
 let viewer = null;
 let currentModel = null;
 let currentPdbData = null;
 let currentStyle = "cartoon";
 let currentColorScheme = "spectrum";
+let currentMapData = null;
 let currentBg = "white";
 let detectedLigands = [];
 
@@ -506,6 +508,7 @@ function loadPdbData(data) {
   document.getElementById("btn-insert").disabled = false;
   document.getElementById("btn-push-slide").disabled = false;
   document.getElementById("btn-download-glb").disabled = false;
+  document.getElementById("map-section").style.display = "";
   setStatus("Structure loaded.", "success");
 }
 
@@ -623,6 +626,26 @@ function bindEvents() {
     }
   });
   document.getElementById("btn-download-glb").addEventListener("click", handleDownloadGLB);
+
+  // Map controls
+  document.getElementById("btn-load-map").addEventListener("click", handleLoadMap);
+  document.getElementById("btn-remove-map").addEventListener("click", handleRemoveMap);
+  document.getElementById("map-2fofc-sigma").addEventListener("input", (e) => {
+    document.getElementById("map-2fofc-sigma-val").textContent = parseFloat(e.target.value).toFixed(1) + "σ";
+  });
+  document.getElementById("map-2fofc-sigma").addEventListener("change", reRenderMap);
+  document.getElementById("chk-fofc-map").addEventListener("change", () => {
+    document.getElementById("fofc-controls").style.display = document.getElementById("chk-fofc-map").checked ? "" : "none";
+    reRenderMap();
+  });
+  document.getElementById("map-fofc-sigma").addEventListener("input", (e) => {
+    document.getElementById("map-fofc-sigma-val").textContent = parseFloat(e.target.value).toFixed(1) + "σ";
+  });
+  document.getElementById("map-fofc-sigma").addEventListener("change", reRenderMap);
+  document.getElementById("map-radius").addEventListener("input", (e) => {
+    document.getElementById("map-radius-val").textContent = e.target.value + " Å";
+  });
+  document.getElementById("map-radius").addEventListener("change", reRenderMap);
 }
 
 async function handleFetchPdb() {
@@ -685,4 +708,56 @@ async function handleDownloadGLB() {
   } finally {
     hideLoading();
   }
+}
+
+function handleLoadMap() {
+  const fileInput = document.getElementById("map-file");
+  const mapStatus = document.getElementById("map-status");
+  if (!fileInput.files.length) { mapStatus.textContent = "Select a map file."; mapStatus.className = "status-text error"; return; }
+  if (!viewer) { mapStatus.textContent = "Load a PDB first."; mapStatus.className = "status-text error"; return; }
+
+  const file = fileInput.files[0];
+  const isMtz = /\.mtz$/i.test(file.name);
+  const reader = new FileReader();
+  mapStatus.textContent = "Loading map...";
+  mapStatus.className = "status-text";
+
+  reader.onload = function (e) {
+    ensureGemmi(function (gemmi) {
+      try {
+        if (isMtz) {
+          const { map2fofc, mapFofc } = parseMtz(gemmi, e.target.result);
+          currentMapData = { map2fofc, mapFofc };
+        } else {
+          const ccp4Map = parseCcp4(gemmi, e.target.result);
+          currentMapData = { map2fofc: ccp4Map, mapFofc: null };
+        }
+        reRenderMap();
+        document.getElementById("map-controls").style.display = "";
+        mapStatus.textContent = "Map loaded: " + file.name;
+        mapStatus.className = "status-text success";
+      } catch (err) {
+        mapStatus.textContent = "Error: " + err.message;
+        mapStatus.className = "status-text error";
+      }
+    });
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function reRenderMap() {
+  if (!viewer || !currentMapData) return;
+  removeDensityMap(viewer);
+  const sigma2fofc = parseFloat(document.getElementById("map-2fofc-sigma").value);
+  const sigmaFofc = parseFloat(document.getElementById("map-fofc-sigma").value);
+  const showFofc = document.getElementById("chk-fofc-map").checked;
+  renderDensityMap(viewer, currentMapData, { sigma2fofc, sigmaFofc, showFofc });
+}
+
+function handleRemoveMap() {
+  if (viewer) removeDensityMap(viewer);
+  currentMapData = null;
+  document.getElementById("map-controls").style.display = "none";
+  document.getElementById("map-status").textContent = "";
+  document.getElementById("map-file").value = "";
 }

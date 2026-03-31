@@ -1,8 +1,10 @@
-/* global $3Dmol */
+/* global $3Dmol, Gemmi */
 import "./presenter.css";
+import { ensureGemmi, parseMtz, parseCcp4, renderDensityMap, removeDensityMap } from "../viewer/edmap.js";
 
 let viewer = null;
 let isSpinning = false;
+let currentMapData = null;
 let entries = []; // { id, name, pdbData, model, visible, settings }
 let selectedEntryId = null;
 let nextId = 1;
@@ -687,6 +689,26 @@ function bindGlobalEvents() {
   window.addEventListener("keydown", handleKey, true);
   // Also catch keys on the viewer canvas directly
   document.getElementById("viewer").addEventListener("keydown", handleKey, true);
+
+  // Map controls
+  document.getElementById("map-file").addEventListener("change", handleLoadMapPresenter);
+  document.getElementById("btn-remove-map").addEventListener("click", handleRemoveMapPresenter);
+  document.getElementById("map-2fofc-sigma").addEventListener("input", (e) => {
+    document.getElementById("map-2fofc-sigma-val").textContent = parseFloat(e.target.value).toFixed(1) + "σ";
+  });
+  document.getElementById("map-2fofc-sigma").addEventListener("change", reRenderMapPresenter);
+  document.getElementById("chk-fofc-map").addEventListener("change", () => {
+    document.getElementById("fofc-controls").style.display = document.getElementById("chk-fofc-map").checked ? "" : "none";
+    reRenderMapPresenter();
+  });
+  document.getElementById("map-fofc-sigma").addEventListener("input", (e) => {
+    document.getElementById("map-fofc-sigma-val").textContent = parseFloat(e.target.value).toFixed(1) + "σ";
+  });
+  document.getElementById("map-fofc-sigma").addEventListener("change", reRenderMapPresenter);
+  document.getElementById("map-radius").addEventListener("input", (e) => {
+    document.getElementById("map-radius-val").textContent = e.target.value + " Å";
+  });
+  document.getElementById("map-radius").addEventListener("change", reRenderMapPresenter);
 }
 
 function updateConditionalUI() {
@@ -766,3 +788,55 @@ function setupDragDrop() {
 
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
 else init();
+
+function handleLoadMapPresenter() {
+  const fileInput = document.getElementById("map-file");
+  const mapStatus = document.getElementById("map-status");
+  if (!fileInput.files.length) return;
+  if (!viewer) { mapStatus.textContent = "Load a structure first."; mapStatus.className = "status-text error"; return; }
+
+  const file = fileInput.files[0];
+  const isMtz = /\.mtz$/i.test(file.name);
+  const reader = new FileReader();
+  mapStatus.textContent = "Loading map...";
+  mapStatus.className = "status-text";
+
+  reader.onload = function (e) {
+    ensureGemmi(function (gemmi) {
+      try {
+        if (isMtz) {
+          const { map2fofc, mapFofc } = parseMtz(gemmi, e.target.result);
+          currentMapData = { map2fofc, mapFofc };
+        } else {
+          const ccp4Map = parseCcp4(gemmi, e.target.result);
+          currentMapData = { map2fofc: ccp4Map, mapFofc: null };
+        }
+        reRenderMapPresenter();
+        document.getElementById("map-controls").style.display = "";
+        mapStatus.textContent = "Map loaded: " + file.name;
+        mapStatus.className = "status-text success";
+      } catch (err) {
+        mapStatus.textContent = "Error: " + err.message;
+        mapStatus.className = "status-text error";
+      }
+    });
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function reRenderMapPresenter() {
+  if (!viewer || !currentMapData) return;
+  removeDensityMap(viewer);
+  const sigma2fofc = parseFloat(document.getElementById("map-2fofc-sigma").value);
+  const sigmaFofc = parseFloat(document.getElementById("map-fofc-sigma").value);
+  const showFofc = document.getElementById("chk-fofc-map").checked;
+  renderDensityMap(viewer, currentMapData, { sigma2fofc, sigmaFofc, showFofc });
+}
+
+function handleRemoveMapPresenter() {
+  if (viewer) removeDensityMap(viewer);
+  currentMapData = null;
+  document.getElementById("map-controls").style.display = "none";
+  document.getElementById("map-status").textContent = "";
+  document.getElementById("map-file").value = "";
+}

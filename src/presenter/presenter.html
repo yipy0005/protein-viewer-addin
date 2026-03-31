@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Protein Viewer — Presenter</title>
   <script src="https://3Dmol.org/build/3Dmol-min.js"></script>
+  <script src="assets/gemmi.js"></script>
 </head>
 <body>
   <div id="layout">
@@ -106,6 +107,32 @@
               </div>
             </div>
           </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Electron Density</div>
+          <div class="input-row">
+            <input type="file" id="map-file" accept=".mtz,.ccp4,.map"/>
+          </div>
+          <div id="map-controls" style="display:none;">
+            <div class="cr"><label>2Fo-Fc σ</label>
+              <input type="range" id="map-2fofc-sigma" min="0.5" max="5.0" value="1.5" step="0.1"/>
+              <span id="map-2fofc-sigma-val">1.5σ</span>
+            </div>
+            <div class="cr"><label><input type="checkbox" id="chk-fofc-map"/> Fo-Fc</label></div>
+            <div id="fofc-controls" style="display:none;">
+              <div class="cr"><label>Fo-Fc σ</label>
+                <input type="range" id="map-fofc-sigma" min="1.0" max="5.0" value="3.0" step="0.1"/>
+                <span id="map-fofc-sigma-val">3.0σ</span>
+              </div>
+            </div>
+            <div class="cr"><label>Radius</label>
+              <input type="range" id="map-radius" min="3" max="20" value="8" step="1"/>
+              <span id="map-radius-val">8 Å</span>
+            </div>
+            <div class="cr"><button id="btn-remove-map" class="btn" style="width:100%;">Remove</button></div>
+          </div>
+          <div id="map-status" class="status-text"></div>
         </div>
 
         <div class="section">
