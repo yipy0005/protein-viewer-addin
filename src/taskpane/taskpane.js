@@ -505,7 +505,6 @@ function loadPdbData(data) {
   extractInfo(data);
   document.getElementById("btn-insert").disabled = false;
   document.getElementById("btn-push-slide").disabled = false;
-  document.getElementById("btn-open-presenter").disabled = false;
   document.getElementById("btn-download-glb").disabled = false;
   setStatus("Structure loaded.", "success");
 }
