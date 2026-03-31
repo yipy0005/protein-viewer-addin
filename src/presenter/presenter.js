@@ -17,12 +17,17 @@ function init() {
   bindGlobalEvents();
   setupDragDrop();
   checkForPush();
-  // Apply the slide's current camera orientation
+  applySlideViewState();
+
+  // Re-sync camera when window is focused (e.g. user clicks "Open Presenter Window")
+  window.addEventListener("focus", applySlideViewState);
+}
+
+function applySlideViewState() {
   try {
     const vs = localStorage.getItem("proteinviewer_viewState");
     if (vs && viewer) viewer.setView(JSON.parse(vs));
   } catch (e) { /**/ }
-  // Don't poll for changes — presenter is the source of truth while open
 }
 
 let lastPushHash = "";
