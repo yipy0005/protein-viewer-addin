@@ -58,31 +58,72 @@ function getModelCenter(viewer) {
 }
 
 /**
- * Extract isosurface from a gemmi wasm map and render as lines in 3Dmol.js.
- * Uses gemmi's extract_isosurface which handles crystallographic transforms correctly.
+ * Extract isosurface from a gemmi wasm map and render as a single batched
+ * line shape in 3Dmol.js for performance.
  */
 function addIsoLines(viewer, wasmMap, sigma, radius, center, color) {
   const isolevel = wasmMap.mean + sigma * wasmMap.rms;
   const ok = wasmMap.extract_isosurface(radius, center.x, center.y, center.z, isolevel, "");
-  if (!ok) return [];
+  if (!ok) return null;
 
   const verts = wasmMap.isosurface_vertices();
   const segs = wasmMap.isosurface_segments();
-  if (!verts || !segs || verts.length === 0 || segs.length === 0) return [];
+  if (!verts || !segs || verts.length === 0 || segs.length === 0) return null;
 
-  // segs contains pairs of indices into verts (each vertex is 3 floats)
-  const shapes = [];
+  // Build a single custom shape with all line segments
+  const vertexArr = [];
+  const normalArr = [];
+  const faceArr = [];
+  const colorArr = [];
+
+  // Parse the color to get r,g,b
+  const c = $3Dmol.CC.color(color);
+  const cr = c.r, cg = c.g, cb = c.b;
+
+  // For each line segment, create a thin triangle pair (degenerate quad)
+  // This renders as lines but in a single draw call
   for (let i = 0; i < segs.length; i += 2) {
     const i0 = segs[i] * 3;
     const i1 = segs[i + 1] * 3;
-    const shape = viewer.addLine({
-      start: { x: verts[i0], y: verts[i0 + 1], z: verts[i0 + 2] },
-      end: { x: verts[i1], y: verts[i1 + 1], z: verts[i1 + 2] },
-      color: color,
-    });
-    shapes.push(shape);
+    const x0 = verts[i0], y0 = verts[i0 + 1], z0 = verts[i0 + 2];
+    const x1 = verts[i1], y1 = verts[i1 + 1], z1 = verts[i1 + 2];
+
+    // Create a very thin quad (two triangles) to represent the line
+    const dx = x1 - x0, dy = y1 - y0, dz = z1 - z0;
+    const len = Math.sqrt(dx * dx + dy * dy + dz * dz);
+    if (len < 0.001) continue;
+
+    // Perpendicular offset (tiny, ~0.02 Å)
+    let px, py, pz;
+    if (Math.abs(dy) > Math.abs(dx)) {
+      px = 1; py = 0; pz = 0;
+    } else {
+      px = 0; py = 1; pz = 0;
+    }
+    // Cross product for perpendicular
+    const cx = dy * pz - dz * py;
+    const cy = dz * px - dx * pz;
+    const cz = dx * py - dy * px;
+    const cl = Math.sqrt(cx * cx + cy * cy + cz * cz);
+    const t = 0.02; // thickness
+    const ox = (cx / cl) * t, oy = (cy / cl) * t, oz = (cz / cl) * t;
+
+    const base = vertexArr.length / 3;
+    vertexArr.push(x0 + ox, y0 + oy, z0 + oz);
+    vertexArr.push(x0 - ox, y0 - oy, z0 - oz);
+    vertexArr.push(x1 + ox, y1 + oy, z1 + oz);
+    vertexArr.push(x1 - ox, y1 - oy, z1 - oz);
+    normalArr.push(ox, oy, oz, -ox, -oy, -oz, ox, oy, oz, -ox, -oy, -oz);
+    colorArr.push(cr, cg, cb, cr, cg, cb, cr, cg, cb, cr, cg, cb);
+    faceArr.push(base, base + 1, base + 2, base + 1, base + 3, base + 2);
   }
-  return shapes;
+
+  if (faceArr.length === 0) return null;
+
+  const shape = viewer.addCustom({
+    vertexArr, normalArr, faceArr, color: colorArr,
+  });
+  return shape;
 }
 
 let currentMapShapes = [];
@@ -96,16 +137,16 @@ export function renderDensityMap(viewer, mapData, opts) {
 
   // 2Fo-Fc (blue)
   if (mapData.map2fofc) {
-    const shapes = addIsoLines(viewer, mapData.map2fofc, sigma2fofc, radius, center, "blue");
-    currentMapShapes.push(...shapes);
+    const shape = addIsoLines(viewer, mapData.map2fofc, sigma2fofc, radius, center, "blue");
+    if (shape) currentMapShapes.push(shape);
   }
 
   // Fo-Fc positive (green) and negative (red)
   if (showFofc && mapData.mapFofc) {
-    const posShapes = addIsoLines(viewer, mapData.mapFofc, sigmaFofc, radius, center, "green");
-    currentMapShapes.push(...posShapes);
-    const negShapes = addIsoLines(viewer, mapData.mapFofc, -sigmaFofc, radius, center, "red");
-    currentMapShapes.push(...negShapes);
+    const posShape = addIsoLines(viewer, mapData.mapFofc, sigmaFofc, radius, center, "green");
+    if (posShape) currentMapShapes.push(posShape);
+    const negShape = addIsoLines(viewer, mapData.mapFofc, -sigmaFofc, radius, center, "red");
+    if (negShape) currentMapShapes.push(negShape);
   }
 
   viewer.render();
