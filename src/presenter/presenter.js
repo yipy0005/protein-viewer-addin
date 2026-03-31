@@ -628,6 +628,7 @@ function pushToSlide() {
 
   statusEl.textContent = `Pushed ${visibleEntries.length} entry(s) to slide.`;
   statusEl.className = "status-text success";
+  window.blur();
 }
 
 // --- Events ---
