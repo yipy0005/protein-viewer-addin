@@ -525,6 +525,44 @@ function jacobi3(A) {
   return { eigVecs: V, eigVals: [M[0][0], M[1][1], M[2][2]] };
 }
 
+// --- Push to Slide ---
+function pushToSlide() {
+  const entry = getSelectedEntry();
+  const statusEl = document.getElementById("push-status");
+  if (!entry) { statusEl.textContent = "No entry selected."; statusEl.className = "status-text error"; return; }
+
+  const s = entry.settings;
+  const ligVal = document.getElementById("ligand-select").value;
+  const styleConfig = {
+    style: s.style,
+    colorScheme: s.colorScheme,
+    backgroundColor: document.getElementById("bg-select").value,
+    proteinOpacity: s.opacity,
+    showSurface: s.surface,
+    surfaceType: s.surfType,
+    surfaceColor: s.surfColor,
+    surfaceOpacity: s.surfOpacity,
+    ligandStyle: s.ligandStyle,
+    selectedLigand: ligVal ? JSON.parse(ligVal) : null,
+    zoomToLigand: s.zoomLigand,
+    showBindingSite: s.bindingSite,
+    bindingDistance: s.bindingDist,
+    showBindingLabels: s.bindingLabels,
+    showHbonds: s.hbonds,
+    showSaltBridges: s.saltBridges,
+    showPiStacking: s.piStacking,
+    showPiCation: s.piCation,
+    showBindingSurface: s.bindingSurface,
+    bindingSurfaceColor: s.bsSurfColor,
+    bindingSurfaceOpacity: s.bsSurfOpacity,
+  };
+
+  localStorage.setItem("proteinviewer_pdbData", entry.pdbData);
+  localStorage.setItem("proteinviewer_styleConfig", JSON.stringify(styleConfig));
+  statusEl.textContent = `Pushed "${entry.name}" to slide.`;
+  statusEl.className = "status-text success";
+}
+
 // --- Events ---
 function bindGlobalEvents() {
   document.getElementById("btn-fetch").addEventListener("click", handleFetch);
@@ -562,6 +600,7 @@ function bindGlobalEvents() {
   document.getElementById("spin-toggle").addEventListener("change", (e) => { isSpinning = e.target.checked; if (viewer) viewer.spin(isSpinning ? "y" : false); });
   document.getElementById("panel-toggle").addEventListener("click", togglePanel);
   document.getElementById("btn-align").addEventListener("click", handleAlign);
+  document.getElementById("btn-push-slide").addEventListener("click", pushToSlide);
   window.addEventListener("keydown", handleKey, true);
   // Also catch keys on the viewer canvas directly
   document.getElementById("viewer").addEventListener("keydown", handleKey, true);
