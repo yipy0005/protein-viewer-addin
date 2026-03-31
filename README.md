@@ -63,16 +63,6 @@ Built with [3Dmol.js](https://3dmol.csb.pitt.edu/) and the [Office.js](https://l
    - `manifest-content-ghpages.xml` → `ProteinViewerContent.xml`
 4. Quit and reopen PowerPoint
 
-### Windows Installation
-
-1. Download `manifest-ghpages.xml` and `manifest-content-ghpages.xml`
-2. Copy them to:
-   ```
-   %LOCALAPPDATA%\Microsoft\Office\16.0\Wef\
-   ```
-   Rename as `ProteinViewer.xml` and `ProteinViewerContent.xml`.
-3. Restart PowerPoint
-
 ---
 
 ## Installation (Windows)
