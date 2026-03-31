@@ -690,6 +690,16 @@ function bindGlobalEvents() {
   // Global controls
   document.getElementById("bg-select").addEventListener("change", () => { if (viewer) { viewer.setBackgroundColor(document.getElementById("bg-select").value); viewer.render(); } });
   document.getElementById("spin-toggle").addEventListener("change", (e) => { isSpinning = e.target.checked; if (viewer) viewer.spin(isSpinning ? "y" : false); });
+  document.getElementById("btn-reset-view").addEventListener("click", () => {
+    if (!viewer) return;
+    const visibleEntries = entries.filter((e) => e.visible);
+    if (visibleEntries.length > 0) {
+      viewer.zoomTo({ model: visibleEntries.map((e) => e.model) });
+    } else {
+      viewer.zoomTo();
+    }
+    viewer.render();
+  });
   document.getElementById("panel-toggle").addEventListener("click", togglePanel);
   document.getElementById("btn-align").addEventListener("click", handleAlign);
   document.getElementById("btn-push-slide").addEventListener("click", pushToSlide);
