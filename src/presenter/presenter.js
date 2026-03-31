@@ -347,37 +347,18 @@ function renderAll() {
   viewer.setBackgroundColor(document.getElementById("bg-select").value);
   const visibleEntries = entries.filter((e) => e.visible);
   const ligandZoomEntry = visibleEntries.find((e) => e.settings.zoomLigand && e.settings.ligand);
+  viewer.render();
+
   if (ligandZoomEntry) {
     const s = ligandZoomEntry.settings;
     const resi = parseInt(s.ligand.resi, 10);
     const ligSel = { model: ligandZoomEntry.model, resn: s.ligand.resn, chain: s.ligand.chain, resi };
-    // Compute ligand centroid
-    const ligAtoms = ligandZoomEntry.model.selectedAtoms(ligSel);
-    if (ligAtoms && ligAtoms.length) {
-      let cx = 0, cy = 0, cz = 0;
-      for (const a of ligAtoms) { cx += a.x; cy += a.y; cz += a.z; }
-      const n = ligAtoms.length;
-      cx /= n; cy /= n; cz /= n;
-      // First zoom to get appropriate zoom level
-      viewer.zoomTo(ligSel);
-      viewer.render();
-      // Now get the view and override the translation to the ligand centroid
-      const view = viewer.getView();
-      // view = [pos.x, pos.y, pos.z, rotationGroup.position.z, q.x, q.y, q.z, q.w]
-      // pos.x/y/z is the center of rotation (negated model translation)
-      view[0] = -cx;
-      view[1] = -cy;
-      view[2] = -cz;
-      viewer.setView(view);
-    } else {
-      viewer.zoomTo(ligSel);
-    }
+    viewer.zoomTo(ligSel);
   } else if (visibleEntries.length > 0) {
     viewer.zoomTo({ model: visibleEntries.map((e) => e.model) });
   } else {
     viewer.zoomTo();
   }
-  viewer.render();
 }
 
 function getSurfType(t) { return { VDW:$3Dmol.SurfaceType.VDW, SAS:$3Dmol.SurfaceType.SAS, SES:$3Dmol.SurfaceType.SES }[t] || $3Dmol.SurfaceType.SAS; }
