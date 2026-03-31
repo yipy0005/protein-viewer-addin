@@ -14,7 +14,16 @@ Office.onReady(() => {
   viewer = $3Dmol.createViewer("viewer", { backgroundColor: "white", antialias: true });
   checkForUpdates();
   setInterval(checkForUpdates, 500);
+  setInterval(saveViewState, 500);
 });
+
+function saveViewState() {
+  if (!viewer) return;
+  try {
+    const vs = viewer.getView();
+    if (vs) localStorage.setItem("proteinviewer_viewState", JSON.stringify(vs));
+  } catch (e) { /**/ }
+}
 
 function checkForUpdates() {
   // Prefer multi-entry payload from presenter

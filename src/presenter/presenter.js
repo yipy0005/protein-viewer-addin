@@ -17,7 +17,15 @@ function init() {
   bindGlobalEvents();
   setupDragDrop();
   checkForPush();
+  applySlideViewState();
   setInterval(checkForPush, 500);
+}
+
+function applySlideViewState() {
+  try {
+    const vs = localStorage.getItem("proteinviewer_viewState");
+    if (vs && viewer) viewer.setView(JSON.parse(vs));
+  } catch (e) { /**/ }
 }
 
 let lastPushHash = "";
