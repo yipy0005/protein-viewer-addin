@@ -65,6 +65,7 @@ function checkForPush() {
         if (payload.backgroundColor) document.getElementById("bg-select").value = payload.backgroundColor;
         selectedEntryId = entries.length ? entries[0].id : null;
         renderAll();
+        if (payload.viewState && viewer) viewer.setView(payload.viewState);
         renderEntryList();
         if (selectedEntryId) selectEntry(selectedEntryId);
         return;
@@ -604,6 +605,7 @@ function pushToSlide() {
   if (!visibleEntries.length) { statusEl.textContent = "No visible entries."; statusEl.className = "status-text error"; return; }
 
   const bg = document.getElementById("bg-select").value;
+  const viewState = viewer ? viewer.getView() : null;
   const multiPayload = visibleEntries.map((e) => ({
     name: e.name,
     pdbData: e.pdbData,
@@ -611,7 +613,7 @@ function pushToSlide() {
   }));
 
   // Multi-entry key
-  localStorage.setItem("proteinviewer_multiEntries", JSON.stringify({ backgroundColor: bg, entries: multiPayload }));
+  localStorage.setItem("proteinviewer_multiEntries", JSON.stringify({ backgroundColor: bg, viewState, entries: multiPayload }));
 
   // Also set single-entry keys for backward compat with taskpane's content add-in
   const first = visibleEntries[0];

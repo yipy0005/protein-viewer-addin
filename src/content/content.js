@@ -111,7 +111,11 @@ function renderMultiStructure(payload) {
   }
 
   viewer.setBackgroundColor(bg);
-  viewer.zoomTo();
+  if (payload.viewState) {
+    viewer.setView(payload.viewState);
+  } else {
+    viewer.zoomTo();
+  }
   viewer.render();
 }
 
