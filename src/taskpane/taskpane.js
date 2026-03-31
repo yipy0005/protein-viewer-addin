@@ -729,8 +729,8 @@ function handleLoadMap() {
           const { map2fofc, mapFofc } = parseMtz(gemmi, e.target.result);
           currentMapData = { map2fofc, mapFofc };
         } else {
-          const ccp4Map = parseCcp4(gemmi, e.target.result);
-          currentMapData = { map2fofc: ccp4Map, mapFofc: null };
+          const ccp4Data = parseCcp4(gemmi, e.target.result);
+          currentMapData = ccp4Data;
         }
         reRenderMap();
         document.getElementById("map-controls").style.display = "";
