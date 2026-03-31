@@ -17,13 +17,26 @@ Office.onReady(() => {
 });
 
 function checkForUpdates() {
+  // Prefer multi-entry payload from presenter
+  const multiJson = localStorage.getItem("proteinviewer_multiEntries");
   const pdbData = localStorage.getItem("proteinviewer_pdbData");
   const styleConfig = localStorage.getItem("proteinviewer_styleConfig");
-  if (!pdbData) return;
-  const hash = pdbData.length + "_" + (styleConfig || "");
+
+  const hash = (multiJson || "") + "_" + (pdbData ? pdbData.length : "") + "_" + (styleConfig || "");
   if (hash === lastHash) return;
   lastHash = hash;
-  renderStructure(pdbData, styleConfig);
+
+  if (multiJson) {
+    try {
+      const payload = JSON.parse(multiJson);
+      if (payload.entries && payload.entries.length) {
+        renderMultiStructure(payload);
+        return;
+      }
+    } catch (e) { /**/ }
+  }
+
+  if (pdbData) renderStructure(pdbData, styleConfig);
 }
 
 function mapColorScheme(s) {
@@ -49,6 +62,123 @@ function getSurfaceColorSpec(mode, colorScheme) {
 
 function getSurfaceType(t) {
   return { VDW: $3Dmol.SurfaceType.VDW, SAS: $3Dmol.SurfaceType.SAS, SES: $3Dmol.SurfaceType.SES }[t] || $3Dmol.SurfaceType.SAS;
+}
+
+function renderMultiStructure(payload) {
+  if (!viewer) return;
+  viewer.removeAllModels(); viewer.removeAllSurfaces(); viewer.removeAllShapes(); viewer.removeAllLabels();
+
+  const bg = payload.backgroundColor || "white";
+
+  for (const entry of payload.entries) {
+    const model = viewer.addModel(entry.pdbData, "pdb");
+    for (const atom of model.selectedAtoms({})) { atom.charge = RESIDUE_CHARGES[atom.resn] || 0; }
+
+    const c = entry.styleConfig || {};
+    const style = c.style || "cartoon";
+    const colorscheme = mapColorScheme(c.colorScheme || "spectrum");
+    const proteinOpacity = c.proteinOpacity !== undefined ? c.proteinOpacity : 1.0;
+
+    const styleObj = {};
+    styleObj[style] = { colorscheme, opacity: proteinOpacity };
+    viewer.setStyle({ model }, { ...styleObj });
+
+    // Protein surface
+    if (c.showSurface) {
+      const sOp = c.surfaceOpacity !== undefined ? c.surfaceOpacity : 0.6;
+      const sType = getSurfaceType(c.surfaceType || "SAS");
+      const sColor = getSurfaceColorSpec(c.surfaceColor || "white", c.colorScheme);
+      viewer.addSurface(sType, { opacity: sOp, ...sColor }, { model, not: { hetflag: true } });
+    }
+
+    // Ligand
+    const lig = c.selectedLigand;
+    if (lig) {
+      const resiInt = parseInt(lig.resi, 10);
+      const ligSel = { model, resn: lig.resn, chain: lig.chain, resi: resiInt };
+      viewer.addStyle(ligSel, buildLigandStyle(c.ligandStyle || "ball-and-stick"));
+
+      if (c.showBindingSite) {
+        viewer.render();
+        renderBindingSiteForModel(model, ligSel, c);
+      }
+    } else {
+      viewer.addStyle(
+        { model, hetflag: true, not: { resn: [...WATER_RESNS, ...ION_RESNS] } },
+        { stick: { colorscheme: "default", radius: 0.15 }, sphere: { colorscheme: "default", radius: 0.3 } }
+      );
+    }
+  }
+
+  viewer.setBackgroundColor(bg);
+  viewer.zoomTo();
+  viewer.render();
+}
+
+function renderBindingSiteForModel(model, ligSel, c) {
+  const ligandAtoms = model.selectedAtoms(ligSel);
+  const proteinAtoms = model.selectedAtoms({ not: { hetflag: true } });
+  if (!ligandAtoms || !ligandAtoms.length || !proteinAtoms || !proteinAtoms.length) return;
+
+  const dist = c.bindingDistance || 5;
+  const nearbyResidues = new Map();
+  for (const la of ligandAtoms) {
+    for (const pa of proteinAtoms) {
+      const dx = la.x - pa.x, dy = la.y - pa.y, dz = la.z - pa.z;
+      if (Math.sqrt(dx * dx + dy * dy + dz * dz) <= dist) {
+        const key = `${pa.chain}:${pa.resi}`;
+        if (!nearbyResidues.has(key)) nearbyResidues.set(key, { chain: pa.chain, resi: pa.resi });
+      }
+    }
+  }
+  if (nearbyResidues.size === 0) return;
+
+  const chainResiMap = {};
+  const allResi = [];
+  for (const [, r] of nearbyResidues) {
+    if (!chainResiMap[r.chain]) chainResiMap[r.chain] = [];
+    chainResiMap[r.chain].push(r.resi);
+    allResi.push(r.resi);
+  }
+
+  for (const [chain, residues] of Object.entries(chainResiMap)) {
+    viewer.addStyle({ model, chain, resi: residues, not: { hetflag: true } }, { stick: { colorscheme: "default", radius: 0.12 } });
+  }
+
+  if (c.showBindingLabels) {
+    for (const [chain, residues] of Object.entries(chainResiMap)) {
+      viewer.addResLabels({ model, chain, resi: residues, atom: "CA" },
+        { font: "Arial", fontSize: 10, showBackground: true, backgroundColor: 0x333333, backgroundOpacity: 0.8, fontColor: "white" });
+    }
+  }
+
+  if (c.showHbonds) {
+    const donors = new Set(["N", "O", "S"]);
+    const np = proteinAtoms.filter((a) => nearbyResidues.has(`${a.chain}:${a.resi}`));
+    for (const la of ligandAtoms) {
+      if (!donors.has(la.elem)) continue;
+      for (const pa of np) {
+        if (!donors.has(pa.elem)) continue;
+        const dx = la.x - pa.x, dy = la.y - pa.y, dz = la.z - pa.z;
+        const d = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        if (d >= 2.0 && d <= 3.5) {
+          viewer.addCylinder({
+            start: { x: la.x, y: la.y, z: la.z }, end: { x: pa.x, y: pa.y, z: pa.z },
+            radius: 0.04, color: "yellow", fromCap: true, toCap: true,
+            dashed: true, dashLength: 0.15, gapLength: 0.1,
+          });
+        }
+      }
+    }
+  }
+
+  if (c.showBindingSurface) {
+    const op = c.bindingSurfaceOpacity !== undefined ? c.bindingSurfaceOpacity : 0.5;
+    const cSpec = getSurfaceColorSpec(c.bindingSurfaceColor || "esp", c.colorScheme);
+    viewer.addSurface($3Dmol.SurfaceType.SAS, { opacity: op, ...cSpec },
+      { model, resi: allResi, not: { hetflag: true } },
+      { not: { hetflag: true } });
+  }
 }
 
 function renderStructure(pdbData, styleConfigJson) {

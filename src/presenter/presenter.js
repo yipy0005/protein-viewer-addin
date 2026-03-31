@@ -526,24 +526,18 @@ function jacobi3(A) {
 }
 
 // --- Push to Slide ---
-function pushToSlide() {
-  const entry = getSelectedEntry();
-  const statusEl = document.getElementById("push-status");
-  if (!entry) { statusEl.textContent = "No entry selected."; statusEl.className = "status-text error"; return; }
-
+function entryToStyleConfig(entry) {
   const s = entry.settings;
-  const ligVal = document.getElementById("ligand-select").value;
-  const styleConfig = {
+  return {
     style: s.style,
     colorScheme: s.colorScheme,
-    backgroundColor: document.getElementById("bg-select").value,
     proteinOpacity: s.opacity,
     showSurface: s.surface,
     surfaceType: s.surfType,
     surfaceColor: s.surfColor,
     surfaceOpacity: s.surfOpacity,
     ligandStyle: s.ligandStyle,
-    selectedLigand: ligVal ? JSON.parse(ligVal) : null,
+    selectedLigand: s.ligand || null,
     zoomToLigand: s.zoomLigand,
     showBindingSite: s.bindingSite,
     bindingDistance: s.bindingDist,
@@ -556,10 +550,29 @@ function pushToSlide() {
     bindingSurfaceColor: s.bsSurfColor,
     bindingSurfaceOpacity: s.bsSurfOpacity,
   };
+}
 
-  localStorage.setItem("proteinviewer_pdbData", entry.pdbData);
-  localStorage.setItem("proteinviewer_styleConfig", JSON.stringify(styleConfig));
-  statusEl.textContent = `Pushed "${entry.name}" to slide.`;
+function pushToSlide() {
+  const statusEl = document.getElementById("push-status");
+  const visibleEntries = entries.filter((e) => e.visible);
+  if (!visibleEntries.length) { statusEl.textContent = "No visible entries."; statusEl.className = "status-text error"; return; }
+
+  const bg = document.getElementById("bg-select").value;
+  const multiPayload = visibleEntries.map((e) => ({
+    name: e.name,
+    pdbData: e.pdbData,
+    styleConfig: entryToStyleConfig(e),
+  }));
+
+  // Multi-entry key
+  localStorage.setItem("proteinviewer_multiEntries", JSON.stringify({ backgroundColor: bg, entries: multiPayload }));
+
+  // Also set single-entry keys for backward compat with taskpane's content add-in
+  const first = visibleEntries[0];
+  localStorage.setItem("proteinviewer_pdbData", first.pdbData);
+  localStorage.setItem("proteinviewer_styleConfig", JSON.stringify({ ...entryToStyleConfig(first), backgroundColor: bg }));
+
+  statusEl.textContent = `Pushed ${visibleEntries.length} entry(s) to slide.`;
   statusEl.className = "status-text success";
 }
 
