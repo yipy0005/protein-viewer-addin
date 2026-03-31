@@ -241,6 +241,7 @@ function renderStructure(pdbData, styleConfigJson) {
     }
 
     viewer.zoomTo(c.zoomToLigand ? ligSel : undefined);
+    if (c.zoomToLigand) viewer.center(ligSel);
   } else {
     viewer.addStyle(
       { hetflag: true, not: { resn: [...WATER_RESNS, ...ION_RESNS] } },

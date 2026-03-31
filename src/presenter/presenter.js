@@ -337,7 +337,7 @@ function renderAll() {
         renderBindingSite(model, ligSel, s);
       }
 
-      if (s.zoomLigand) viewer.zoomTo(ligSel);
+      if (s.zoomLigand) { viewer.zoomTo(ligSel); viewer.center(ligSel); }
     } else {
       viewer.addStyle({ model: model, hetflag: true, not: { resn: [...WATER,...IONS] } },
         { stick: { colorscheme:"default", radius:0.15 }, sphere: { colorscheme:"default", radius:0.3 } });

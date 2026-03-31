@@ -199,6 +199,7 @@ function applyVisualization() {
 
     if (zoomToLigand) {
       viewer.zoomTo(ligSel);
+      viewer.center(ligSel);
     } else {
       viewer.zoomTo();
     }
