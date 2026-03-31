@@ -612,7 +612,8 @@ function bindEvents() {
   document.getElementById("btn-insert").addEventListener("click", handleInsertSnapshot);
   document.getElementById("btn-push-slide").addEventListener("click", pushToSlideViewer);
   document.getElementById("btn-open-presenter").addEventListener("click", () => {
-    window.open("https://yipy0005.github.io/protein-viewer-addin/presenter.html", "ProteinPresenter", "width=1200,height=800");
+    const v = Date.now();
+    window.open(`https://yipy0005.github.io/protein-viewer-addin/presenter.html?v=${v}`, "_blank", "width=1200,height=800");
   });
   document.getElementById("btn-download-glb").addEventListener("click", handleDownloadGLB);
 }
