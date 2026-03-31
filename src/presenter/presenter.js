@@ -17,15 +17,7 @@ function init() {
   bindGlobalEvents();
   setupDragDrop();
   checkForPush();
-  applySlideViewState();
   setInterval(checkForPush, 500);
-}
-
-function applySlideViewState() {
-  try {
-    const vs = localStorage.getItem("proteinviewer_viewState");
-    if (vs && viewer) viewer.setView(JSON.parse(vs));
-  } catch (e) { /**/ }
 }
 
 let lastPushHash = "";
@@ -73,7 +65,10 @@ function checkForPush() {
         if (payload.backgroundColor) document.getElementById("bg-select").value = payload.backgroundColor;
         selectedEntryId = entries.length ? entries[0].id : null;
         renderAll();
-        if (payload.viewState && viewer) viewer.setView(payload.viewState);
+        // Prefer slide's live view state, fall back to push-time view state
+        const liveVS = localStorage.getItem("proteinviewer_viewState");
+        if (liveVS && viewer) { try { viewer.setView(JSON.parse(liveVS)); } catch (e) { /**/ } }
+        else if (payload.viewState && viewer) viewer.setView(payload.viewState);
         renderEntryList();
         if (selectedEntryId) selectEntry(selectedEntryId);
         return;
