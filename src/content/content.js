@@ -1,6 +1,7 @@
 /* global Office, $3Dmol */
 
 import "./content.css";
+import { renderIsoGeometry, removeIsoGeometry } from "../viewer/edmap.js";
 
 let viewer = null;
 let currentModel = null;
@@ -34,8 +35,9 @@ function checkForUpdates() {
   const multiJson = localStorage.getItem("proteinviewer_multiEntries");
   const pdbData = localStorage.getItem("proteinviewer_pdbData");
   const styleConfig = localStorage.getItem("proteinviewer_styleConfig");
+  const isoJson = localStorage.getItem("proteinviewer_isoGeometry");
 
-  const hash = (multiJson || "") + "_" + (pdbData ? pdbData.length : "") + "_" + (styleConfig || "");
+  const hash = (multiJson || "") + "_" + (pdbData ? pdbData.length : "") + "_" + (styleConfig || "") + "_" + (isoJson ? isoJson.length : "");
   if (hash === lastHash) return;
   lastHash = hash;
 
@@ -44,12 +46,25 @@ function checkForUpdates() {
       const payload = JSON.parse(multiJson);
       if (payload.entries && payload.entries.length) {
         renderMultiStructure(payload);
+        renderIsoFromStorage(isoJson);
         return;
       }
     } catch (e) { /**/ }
   }
 
-  if (pdbData) renderStructure(pdbData, styleConfig);
+  if (pdbData) {
+    renderStructure(pdbData, styleConfig);
+    renderIsoFromStorage(isoJson);
+  }
+}
+
+function renderIsoFromStorage(isoJson) {
+  removeIsoGeometry(viewer);
+  if (!isoJson) return;
+  try {
+    const layers = JSON.parse(isoJson);
+    if (layers && layers.length) renderIsoGeometry(viewer, layers);
+  } catch (e) { /**/ }
 }
 
 function mapColorScheme(s) {

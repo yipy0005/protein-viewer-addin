@@ -1,6 +1,6 @@
 /* global $3Dmol, Gemmi */
 import "./presenter.css";
-import { ensureGemmi, parseMtz, parseCcp4, renderDensityMap, removeDensityMap } from "../viewer/edmap.js";
+import { ensureGemmi, parseMtz, parseCcp4, renderDensityMap, removeDensityMap, extractIsoGeometry } from "../viewer/edmap.js";
 
 let viewer = null;
 let isSpinning = false;
@@ -654,6 +654,32 @@ function pushToSlide() {
   const first = visibleEntries[0];
   localStorage.setItem("proteinviewer_pdbData", first.pdbData);
   localStorage.setItem("proteinviewer_styleConfig", JSON.stringify({ ...entryToStyleConfig(first), backgroundColor: bg }));
+
+  // Push density map geometry if loaded
+  if (currentMapData) {
+    const center = getSelectedLigandCenter();
+    const sigma2fofc = parseFloat(document.getElementById("map-2fofc-sigma").value);
+    const sigmaFofc = parseFloat(document.getElementById("map-fofc-sigma").value);
+    const showFofc = document.getElementById("chk-fofc-map").checked;
+    const radius = parseFloat(document.getElementById("map-radius").value);
+    const modelCenter = center || (() => {
+      const entry = visibleEntries[0];
+      if (!entry || !entry.model) return { x: 0, y: 0, z: 0 };
+      const atoms = entry.model.selectedAtoms({});
+      if (!atoms.length) return { x: 0, y: 0, z: 0 };
+      let cx = 0, cy = 0, cz = 0;
+      for (const a of atoms) { cx += a.x; cy += a.y; cz += a.z; }
+      return { x: cx / atoms.length, y: cy / atoms.length, z: cz / atoms.length };
+    })();
+    const layers = extractIsoGeometry(currentMapData, { sigma2fofc, sigmaFofc, showFofc, radius, center: modelCenter });
+    if (layers) {
+      try { localStorage.setItem("proteinviewer_isoGeometry", JSON.stringify(layers)); } catch (e) { /* too large */ }
+    } else {
+      localStorage.removeItem("proteinviewer_isoGeometry");
+    }
+  } else {
+    localStorage.removeItem("proteinviewer_isoGeometry");
+  }
 
   statusEl.textContent = `Pushed ${visibleEntries.length} entry(s) to slide.`;
   statusEl.className = "status-text success";
